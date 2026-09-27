@@ -1,0 +1,38 @@
+# @240xu/dsh-suite bundle layer（骨架）：五条 family 行，全部经本包 shell 子路径
+# 挂载（会签方案 aggregation-weball.md §7 MVA：行 name → @240xu/dsh-suite/<family>
+# （永不失败的隔离壳），真实包名放 config.plugin，由 shell 动态 import——
+# 任一子包 import/start 失败只降级该行，不拖垮 bundle 事务组、不 abort dsh web。
+# id 统一 x240- 前缀：与各子包 standalone patch 的 id（dsh-websearch 等）不冲突，
+# suite 与 standalone 可共存（standalone 优先，见 README）。
+# 若验证期需要绕过 shell 直接挂子包，把 name 换成子包名并删掉 config 即可
+# （对照行保留在文件尾注释）。
+- insert:
+    - id: x240-websearch
+      name: '@240xu/dsh-suite/websearch'
+      config:
+        plugin: '@240xu/dsh-websearch'
+- insert:
+    - id: x240-message-ops
+      name: '@240xu/dsh-suite/message-ops'
+      config:
+        plugin: '@240xu/dsh-message-ops'
+- insert:
+    - id: x240-session-lazy-view
+      name: '@240xu/dsh-suite/session-lazy-view'
+      config:
+        plugin: '@240xu/dsh-session-lazy-view'
+- insert:
+    - id: x240-devkit
+      name: '@240xu/dsh-suite/devkit'
+      config:
+        plugin: '@240xu/dsh-devkit'
+- insert:
+    - id: x240-session-search
+      name: '@240xu/dsh-suite/session-search'
+      config:
+        plugin: '@240xu/dsh-session-search'
+
+# 对照（不启用）：无 shell 直挂形态，即任务书 2) 的字面读法——
+# - insert:
+#     - id: x240-websearch
+#       name: '@240xu/dsh-websearch'
