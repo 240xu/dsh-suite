@@ -82,3 +82,20 @@ dsh plugin --profile web remove @240xu/dsh-suite
 6. 验证 standalone 共存：同 profile 再 `dsh plugin add link:../dsh-devkit`，
    确认无重复 id 拒绝、设置页只出现一份 devkit 入口。
 7. 全部通过后删除 fixtures、发 npm（先子包后 suite）。
+
+## 端到端验证结果（2026-09-28，suitetest profile 实测）
+
+| 步骤 | 结果 |
+|---|---|
+| 1. link 五个真实子包 | ✅（lazy-view 源码在 slv-check 目录，symlink 指向该处） |
+| 2. `dsh plugin add link:` | ✅ suite 注册为 bundle |
+| 3. dump-config | ✅ 五条 x240-* 行、name=shell 子路径、config.plugin=真实包名 |
+| 4. `dsh --profile=suitetest --port 3999` | ✅ http=401、degraded 空、五端点全响应（400/200/200/401/200 均为预期值） |
+| 5. 故障注入（session-search index.js 抛错） | ✅ **隔离生效**：服务正常启动（401），degraded 仅列 `@240xu/dsh-session-search [import]`，其余四行端点全部存活 |
+| 6. standalone 共存（suite 内 devkit + standalone dsh-devkit 同 profile） | ✅ 启动无重复 id 冲突（bundle patch insert warn-and-skip）、degraded 空、/api/devkit/health 单实例 200、组合树出现 4 处 dsh-devkit 引用（suite 行+standalone 行+元数据） |
+
+### 实测发现的运维事实（发布前须知）
+1. **slv-check 裸克隆需要 node_modules shim**：`@deepseek-ai/schemastery` 指向 profile 安装（`ln -sfn <profile>/node_modules/@deepseek-ai/schemastery slv-check/node_modules/@deepseek-ai/schemastery`）。npm 发布版无此问题（真实安装由 pnpm hoisted 提供）。
+2. **CLI 语法**：`dsh --profile=<name> --port <p> --no-open`（`--profile <name> web` 的 `web` 会被当多余 app 参数拒绝；`dsh <name> web` 同样）。
+3. **profile 依赖两个内建 bundle**：`@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`（缺后者则无 HTTP 面）。
+4. 壳隔离在第 5 步经受住了真实故障注入——这正是专家组会签方案的核心验收。
