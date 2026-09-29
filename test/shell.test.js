@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { pathToFileURL } from "node:url";
+import { join } from "node:path";
 import { apply, listDegraded, _resetDegraded } from "../src/shell.js";
+
+// 自包含 fixtures（随 git 提交，干净检出即可跑）：以 file: URL 导入，
+// 不依赖 node_modules 布局——真实安装下 shell 的 spec 是裸包名，
+// 解析语义相同（都是 ESM 动态 import）。
+const FIXTURE = (name) => pathToFileURL(join(import.meta.dirname, "fixtures", name, "index.js")).href;
 
 // 最小 cordis 风格 ctx 桩：effect 登记清理项、inject 捕获子 fiber、plugin 记录挂载。
 function makeCtx() {
@@ -20,7 +27,7 @@ function makeCtx() {
 test("good plugin mounts through the shell", async () => {
   _resetDegraded();
   const ctx = makeCtx();
-  await apply(ctx, { plugin: "@240xu/mock-good" });
+  await apply(ctx, { plugin: FIXTURE("mock-good") });
   assert.equal(ctx.mounted.length, 1);
   assert.equal(ctx.mounted[0].name, "mock-good");
   assert.equal(listDegraded().length, 0);
@@ -29,18 +36,18 @@ test("good plugin mounts through the shell", async () => {
 test("import failure degrades the row without rethrowing", async () => {
   _resetDegraded();
   const ctx = makeCtx();
-  await assert.doesNotReject(() => apply(ctx, { plugin: "@240xu/mock-badimport" }));
+  await assert.doesNotReject(() => apply(ctx, { plugin: FIXTURE("mock-badimport") }));
   assert.equal(ctx.mounted.length, 0);
   const d = listDegraded();
   assert.equal(d.length, 1);
-  assert.equal(d[0].plugin, "@240xu/mock-badimport");
+  assert.equal(d[0].plugin, FIXTURE("mock-badimport"));
   assert.equal(d[0].stage, "import");
 });
 
 test("bad shape degrades instead of aborting", async () => {
   _resetDegraded();
   const ctx = makeCtx();
-  await apply(ctx, { plugin: "@240xu/mock-badshape" });
+  await apply(ctx, { plugin: FIXTURE("mock-badshape") });
   assert.equal(ctx.mounted.length, 0);
   assert.equal(listDegraded()[0].stage, "shape");
 });
@@ -48,12 +55,12 @@ test("bad shape degrades instead of aborting", async () => {
 test("start throw degrades, sibling rows still mount (isolation semantics)", async () => {
   _resetDegraded();
   const ctxA = makeCtx();
-  await apply(ctxA, { plugin: "@240xu/mock-badstart" });
+  await apply(ctxA, { plugin: FIXTURE("mock-badstart") });
   assert.equal(ctxA.mounted.length, 0);
   const ctxB = makeCtx();
-  await apply(ctxB, { plugin: "@240xu/mock-good" });
+  await apply(ctxB, { plugin: FIXTURE("mock-good") });
   assert.equal(ctxB.mounted.length, 1);
-  assert.equal(listDegraded().find((d) => d.stage === "start").plugin, "@240xu/mock-badstart");
+  assert.equal(listDegraded().find((d) => d.stage === "start").plugin, FIXTURE("mock-badstart"));
 });
 
 test("bare-row / empty config mounts quietly (override shape)", async () => {
@@ -69,7 +76,7 @@ test("bare-row / empty config mounts quietly (override shape)", async () => {
 test("health route registers via nested webServer inject fiber", async () => {
   _resetDegraded();
   const ctx = makeCtx();
-  await apply(ctx, { plugin: "@240xu/mock-good" });
+  await apply(ctx, { plugin: FIXTURE("mock-good") });
   assert.equal(ctx.injected.length, 1);
   // 模拟 webServer 服务迟到后 fiber 执行
   const fakeWs = { register: (route) => { return () => {}; } };

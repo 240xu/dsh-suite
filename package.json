@@ -5,7 +5,9 @@
   "type": "module",
   "license": "MIT",
   "author": "240xu",
-  "keywords": ["dsh-plugin"],
+  "keywords": [
+    "dsh-plugin"
+  ],
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
@@ -18,7 +20,12 @@
     "./degraded": "./src/shell.js",
     "./package.json": "./package.json"
   },
-  "files": ["src", "cordis.patch.yml", "README.md", "LICENSE"],
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -31,11 +38,14 @@
   "dependencies": {
     "@240xu/dsh-websearch": "^2.7.2",
     "@240xu/dsh-message-ops": "^0.2.2",
-    "@240xu/dsh-session-lazy-view": "^0.2.1",
+    "@240xu/dsh-session-lazy-view": "^0.3.0",
     "@240xu/dsh-devkit": "^0.2.2",
     "@240xu/dsh-session-search": "^0.1.0"
   },
   "scripts": {
     "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
