@@ -22,10 +22,6 @@
       config:
         plugin: '@240xu/dsh-session-lazy-view'
 - insert:
-    - id: x240-devkit
-      name: '@240xu/dsh-suite/devkit'
-      config:
-        plugin: '@240xu/dsh-devkit'
 - insert:
     - id: x240-session-search
       name: '@240xu/dsh-suite/session-search'

@@ -11,14 +11,13 @@ dsh plugin --profile web add @240xu/dsh-suite@latest   # 发布后
 dsh web                                                # 重启生效
 ```
 
-安装即引入五个子包（dependencies caret 区间）并挂载五条 family 行：
+安装即引入四个子包（dependencies caret 区间）并挂载五条 family 行：
 
 | 行 id | 子路径（shell） | 真实插件 |
 |---|---|---|
 | x240-websearch | @240xu/dsh-suite/websearch | @240xu/dsh-websearch ^2.7.2 |
 | x240-message-ops | @240xu/dsh-suite/message-ops | @240xu/dsh-message-ops ^0.2.2 |
 | x240-session-lazy-view | @240xu/dsh-suite/session-lazy-view | @240xu/dsh-session-lazy-view ^0.2.1 |
-| x240-devkit | @240xu/dsh-suite/devkit | @240xu/dsh-devkit ^0.2.2 |
 | x240-session-search | @240xu/dsh-suite/session-search | @240xu/dsh-session-search ^0.1.0 |
 
 ## 故障隔离（shell 壳）
@@ -69,7 +68,7 @@ dsh plugin --profile web remove @240xu/dsh-suite
 ## 端到端验证步骤（发布前必做）
 
 1. `cd ~/dsh-plugins-src/dsh-suite && rm -rf node_modules`（清掉 PoC fixtures，
-   换真实依赖：把五个子包目录 ln -s 进 node_modules/@240xu/，或 pnpm link）。
+   换真实依赖：把四个子包目录 ln -s 进 node_modules/@240xu/，或 pnpm link）。
 2. `dsh plugin --profile web add link:$(pwd)`（测试 profile 更稳：
    `--profile suitetest`）。
 3. `dsh --profile suitetest --dump-config`：确认五条 x240-* 行存在、name 为
