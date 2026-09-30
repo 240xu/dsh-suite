@@ -99,3 +99,18 @@ dsh plugin --profile web remove @240xu/dsh-suite
 2. **CLI 语法**：`dsh --profile=<name> --port <p> --no-open`（`--profile <name> web` 的 `web` 会被当多余 app 参数拒绝；`dsh <name> web` 同样）。
 3. **profile 依赖两个内建 bundle**：`@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`（缺后者则无 HTTP 面）。
 4. 壳隔离在第 5 步经受住了真实故障注入——这正是专家组会签方案的核心验收。
+
+## 端到端验证结果 R2（2026-09-30，真实 pnpm 依赖布局）
+
+前置修正：上轮验证用的是手工 symlink；本轮改为**真实 pnpm 安装**（suite dependencies caret 刷新到
+当前版本，node_modules/.pnpm 布局）。结果：
+1. suite 自身 `pnpm install` 拉齐五子包（2.7.3/0.2.3/0.3.1/0.2.3/0.1.2）✅
+2. profile `pnpm install` 级联（link: suite 保持自带 node_modules，shell 动态 import 从 suite 目录解析）✅
+3. `dsh --profile=suitetest --port 3999` 启动 → degraded 空、五端点全响应 ✅
+4. **故障注入（对 .pnpm 真实副本写 throw）** → degraded 精确列出该行，其余四行存活 ✅（隔离在 npm 布局下复验）
+5. 逐行 disable 语义由 shell 兜底（上轮已验）
+
+### 运维注意
+- suite 以 link: 方式安装时，其 dependencies 由 suite 目录内 pnpm install 提供（profile 的
+  install 不穿越 link 边界）——部署脚本必须先在 suite 目录跑 install。
+- 上游 fix 后恢复：对 .pnpm 副本 `git checkout`/重装即可，无需重装整个 profile。
