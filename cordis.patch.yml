@@ -36,3 +36,7 @@
 # - insert:
 #     - id: x240-websearch
 #       name: '@240xu/dsh-websearch'
+- id: web
+  name: '@deepseek-ai/dsh-web'
+  config:
+    searchProvider: unified
