@@ -1,5 +1,6 @@
 minimumReleaseAgeExclude:
   - '@240xu/dsh-devkit@0.2.3'
-  - '@240xu/dsh-message-ops@0.2.3'
-  - '@240xu/dsh-session-search@0.1.2'
-  - '@240xu/dsh-websearch@2.7.3 || 2.8.0'
+  - '@240xu/dsh-message-ops@0.2.3 || 0.5.2'
+  - '@240xu/dsh-session-search@0.1.2 || 0.1.5'
+  - '@240xu/dsh-websearch@2.7.3 || 2.8.0 || 2.8.2'
+  - '@240xu/dsh-session-lazy-view@0.3.4'

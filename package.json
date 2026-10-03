@@ -1,6 +1,6 @@
 {
   "name": "@240xu/dsh-suite",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "@240xu 生态聚合包（骨架）：一条 dsh plugin add 装全家。行 name 指向本包 shell 子路径做故障隔离，config.plugin 指向真实子包；逐行 disable 即回滚，standalone 安装不受影响。",
   "type": "module",
   "license": "MIT",
@@ -36,10 +36,10 @@
     }
   },
   "dependencies": {
-    "@240xu/dsh-websearch": "^2.8.0",
-    "@240xu/dsh-message-ops": "^0.2.3",
-    "@240xu/dsh-session-lazy-view": "^0.3.1",
-    "@240xu/dsh-session-search": "^0.1.2"
+    "@240xu/dsh-websearch": "^2.8.2",
+    "@240xu/dsh-message-ops": "^0.5.2",
+    "@240xu/dsh-session-lazy-view": "^0.3.4",
+    "@240xu/dsh-session-search": "^0.1.5"
   },
   "scripts": {
     "test": "node --test test/*.test.js"

@@ -1,4 +1,5 @@
-# @240xu/dsh-suite bundle layer（骨架）：五条 family 行，全部经本包 shell 子路径
+# @240xu/dsh-suite bundle layer：四条 family 行（x240-*，经本包 shell 子路径）
+# + 一条 web 接线行（searchProvider 统一到 websearch；强耦合见 README）
 # 挂载（会签方案 aggregation-weball.md §7 MVA：行 name → @240xu/dsh-suite/<family>
 # （永不失败的隔离壳），真实包名放 config.plugin，由 shell 动态 import——
 # 任一子包 import/start 失败只降级该行，不拖垮 bundle 事务组、不 abort dsh web。
@@ -21,8 +22,6 @@
       name: '@240xu/dsh-suite/session-lazy-view'
       config:
         plugin: '@240xu/dsh-session-lazy-view'
-- insert:
-- insert:
     - id: x240-session-search
       name: '@240xu/dsh-suite/session-search'
       config:

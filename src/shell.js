@@ -22,11 +22,24 @@ function shellState() {
   return (globalThis[KEY] ??= { degraded: new Map(), healthRoutes: { count: 0 } });
 }
 
-/** 记录（或刷新）一行降级。错误在此打一次日志。 */
+/** 安全 JSON：circular/BigInt/toJSON 抛出时降级为占位串（0.1.4 P2 护栏）。 */
+function safeStringify(value) {
+  try { return JSON.stringify(value ?? null); } catch { return '"<unserializable>"'; }
+}
+
+/** 记录（或刷新）一行降级。错误在此打一次日志。
+ *  0.1.4（P2）：整体自护栏——本函数若自己抛（stack getter/toString 抛），
+ *  会逃出 applyShell 让壳行事务回滚整 bundle，恰是壳要防的失败面。 */
 function recordDegraded(plugin, stage, error) {
-  const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
-  console.error(`[dsh-suite] plugin degraded (${stage}): ${plugin}\n${message}`);
-  shellState().degraded.set(plugin, { plugin, stage, message, at: new Date().toISOString() });
+  try {
+    const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    console.error(`[dsh-suite] plugin degraded (${stage}): ${plugin}\n${message}`);
+    shellState().degraded.set(plugin, { plugin, stage, message, at: new Date().toISOString() });
+  } catch (e) {
+    try {
+      shellState().degraded.set(plugin, { plugin, stage, message: '<degrade ledger write failed>', at: new Date().toISOString() });
+    } catch { /* 最后防线：静默——观测功能绝不反噬主流程 */ }
+  }
 }
 
 export function listDegraded() {
@@ -47,7 +60,13 @@ function makeDegradedRoute() {
     handler: async (req, res) => {
       let remote = req.socket?.remoteAddress ?? "";
       if (remote.startsWith("::ffff:")) remote = remote.slice(7);
-      if (remote !== "127.0.0.1" && remote !== "::1") {
+      // 0.1.4（P2）：remoteAddress 之外必须校验 Host——evil.com TTL 重绑定到
+      // 127.0.0.1 后 remoteAddress 仍是回环，仅靠它放行会泄露降级清单
+      // （插件名 + error.stack 绝对路径）。Host 必须是本机名（对齐三兄弟的
+      // Host 围栏为 arch-review 上线硬门槛）。
+      const host = String(req.headers?.host ?? "").toLowerCase();
+      const hostOk = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host);
+      if (remote !== "127.0.0.1" && remote !== "::1" || !hostOk) {
         res.writeHead(403, { "content-type": "application/json" });
         res.end(JSON.stringify({ ok: false, error: "forbidden: loopback-only" }));
         return;
@@ -97,7 +116,7 @@ async function applyShell(ctx, config) {
   const spec = config?.plugin;
   if (typeof spec !== "string" || spec === "") {
     if (config === undefined || (typeof config === "object" && config !== null && Object.keys(config).length === 0)) return;
-    recordDegraded("(no plugin)", "shape", new Error(`shell row config is missing the "plugin" package name (config: ${JSON.stringify(config ?? null)})`));
+    recordDegraded("(no plugin)", "shape", new Error(`shell row config is missing the "plugin" package name (config: ${safeStringify(config)})`));
     return;
   }
   if (RETIRED_PLUGINS.has(spec)) return;
@@ -118,7 +137,7 @@ async function applyShell(ctx, config) {
   }
   try {
     const fiber = ctx.plugin(plugin, config?.config);
-    Promise.resolve(fiber).then(undefined, (error) => recordDegraded(spec, "start", error));
+    Promise.resolve(fiber).then(undefined, (error) => { try { recordDegraded(spec, "start", error); } catch { /* 观测不反噬 */ } });
   } catch (error) {
     recordDegraded(spec, "start", error);
   }

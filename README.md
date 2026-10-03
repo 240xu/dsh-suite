@@ -11,14 +11,21 @@ dsh plugin --profile web add @240xu/dsh-suite@latest   # 发布后
 dsh web                                                # 重启生效
 ```
 
-安装即引入四个子包（dependencies caret 区间）并挂载五条 family 行：
+安装即引入四个子包（dependencies caret 区间）并挂载四条 family 行 + 一条 web 接线行：
 
 | 行 id | 子路径（shell） | 真实插件 |
 |---|---|---|
-| x240-websearch | @240xu/dsh-suite/websearch | @240xu/dsh-websearch ^2.7.2 |
-| x240-message-ops | @240xu/dsh-suite/message-ops | @240xu/dsh-message-ops ^0.2.2 |
-| x240-session-lazy-view | @240xu/dsh-suite/session-lazy-view | @240xu/dsh-session-lazy-view ^0.2.1 |
-| x240-session-search | @240xu/dsh-suite/session-search | @240xu/dsh-session-search ^0.1.0 |
+| x240-websearch | @240xu/dsh-suite/websearch | @240xu/dsh-websearch ^2.8.2 |
+| x240-message-ops | @240xu/dsh-suite/message-ops | @240xu/dsh-message-ops ^0.5.2 |
+| x240-session-lazy-view | @240xu/dsh-suite/session-lazy-view | @240xu/dsh-session-lazy-view ^0.3.4 |
+| x240-session-search | @240xu/dsh-suite/session-search | @240xu/dsh-session-search ^0.1.5 |
+
+## 已知强耦合（web 接线行）
+
+`web` 行无条件把 `searchProvider` 置为 `unified`（websearch 的 PROVIDER_ID）。
+若 `x240-websearch` 行被 disable/import 降级，dsh-web 每次搜索会硬抛
+`WEB_PROVIDER_CONFIGURED_MISSING`（连坐打死本可回退 deepseek-official 的 web
+搜索）。禁用 websearch 行时请同步删掉 `web` 行的 `searchProvider` 覆盖。
 
 ## 故障隔离（shell 壳）
 
@@ -71,7 +78,7 @@ dsh plugin --profile web remove @240xu/dsh-suite
    换真实依赖：把四个子包目录 ln -s 进 node_modules/@240xu/，或 pnpm link）。
 2. `dsh plugin --profile web add link:$(pwd)`（测试 profile 更稳：
    `--profile suitetest`）。
-3. `dsh --profile suitetest --dump-config`：确认五条 x240-* 行存在、name 为
+3. `dsh --profile suitetest --dump-config`：确认四条 x240-* 行存在、name 为
    shell 子路径、config.plugin 为真实包名。
 4. `dsh web --profile suitetest`：五插件功能可用；
    `curl -s http://127.0.0.1:<port>/api/dsh-suite/degraded` 应返回
@@ -88,7 +95,7 @@ dsh plugin --profile web remove @240xu/dsh-suite
 |---|---|
 | 1. link 五个真实子包 | ✅（lazy-view 源码在 slv-check 目录，symlink 指向该处） |
 | 2. `dsh plugin add link:` | ✅ suite 注册为 bundle |
-| 3. dump-config | ✅ 五条 x240-* 行、name=shell 子路径、config.plugin=真实包名 |
+| 3. dump-config | ✅ 四条 x240-* 行、name=shell 子路径、config.plugin=真实包名 |
 | 4. `dsh --profile=suitetest --port 3999` | ✅ http=401、degraded 空、五端点全响应（400/200/200/401/200 均为预期值） |
 | 5. 故障注入（session-search index.js 抛错） | ✅ **隔离生效**：服务正常启动（401），degraded 仅列 `@240xu/dsh-session-search [import]`，其余四行端点全部存活 |
 | 6. standalone 共存（suite 内 devkit + standalone dsh-devkit 同 profile） | ✅ 启动无重复 id 冲突（bundle patch insert warn-and-skip）、degraded 空、/api/devkit/health 单实例 200、组合树出现 4 处 dsh-devkit 引用（suite 行+standalone 行+元数据） |
@@ -103,7 +110,7 @@ dsh plugin --profile web remove @240xu/dsh-suite
 
 前置修正：上轮验证用的是手工 symlink；本轮改为**真实 pnpm 安装**（suite dependencies caret 刷新到
 当前版本，node_modules/.pnpm 布局）。结果：
-1. suite 自身 `pnpm install` 拉齐五子包（2.7.3/0.2.3/0.3.1/0.2.3/0.1.2）✅
+1. suite 自身 `pnpm install` 拉齐四子包（devkit 0.1.x 时代已出列）✅
 2. profile `pnpm install` 级联（link: suite 保持自带 node_modules，shell 动态 import 从 suite 目录解析）✅
 3. `dsh --profile=suitetest --port 3999` 启动 → degraded 空、五端点全响应 ✅
 4. **故障注入（对 .pnpm 真实副本写 throw）** → degraded 精确列出该行，其余四行存活 ✅（隔离在 npm 布局下复验）
@@ -113,3 +120,18 @@ dsh plugin --profile web remove @240xu/dsh-suite
 - suite 以 link: 方式安装时，其 dependencies 由 suite 目录内 pnpm install 提供（profile 的
   install 不穿越 link 边界）——部署脚本必须先在 suite 目录跑 install。
 - 上游 fix 后恢复：对 .pnpm 副本 `git checkout`/重装即可，无需重装整个 profile。
+
+## 0.1.4 · Bug 猎场修复
+
+- **[P2] cordis.patch.yml 空 `- insert:` 死行**（devkit 删除残留）——loader 每次启动
+  warn-and-skip。已删；头注释改「四条 family 行 + 一条 web 接线行」。
+- **[P2] 依赖 caret 天花板**：message-ops ^0.2.x 永远装不到 0.3–0.5 特性 → 四个
+  caret 全部对齐当前最新（websearch ^2.8.2 / message-ops ^0.5.2 / lazy-view ^0.3.4 /
+  session-search ^0.1.5）；pnpm-lock 刷新（frozen-lockfile 可用），devkit 彻底出列。
+- **[P2] degraded 路由缺 Host 围栏**：仅查 remoteAddress，DNS-rebinding 可读降级
+  清单（含 error.stack 绝对路径）→ 补 Host 白名单（localhost/127.0.0.1/[::1]）。
+- **[P2] recordDegraded 自护栏**：stack getter/toString 抛出会逃出 applyShell 触发
+  整 bundle 事务回滚（恰是壳要防的）；start 回调包 try/catch 防 unhandledRejection
+  杀进程；`JSON.stringify(config)` → safeStringify。
+- **[P2] README 依赖表 4/4 过期 + 「五条/五子包」口径** → 全部同步；新增「已知
+  强耦合」章节（websearch 行降级连坐 dsh-web 搜索的处置方法）。
